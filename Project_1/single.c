@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 	
 	// 构造文件名
 	strcpy(file_src, cwd);
-	strcat(file_src, "/Matrix1000.in");
+	strcat(file_src, "/data.in");
 	
 	// 打开文件
 	FILE *src;
@@ -130,6 +130,7 @@ int main(int argc, char *argv[])
     	}
     	double end = clock();
     	//print
+    	/*
 	for (int i =0; i< num; i++)
 	{
 		for (int j = 0; j < num; j++) 
@@ -138,9 +139,26 @@ int main(int argc, char *argv[])
 		}
 		printf("\n");
 	}
+	*/
 	double time_consumed = (end - start)/CLOCKS_PER_SEC *1000;
 	printf("Time consumed: %f\n millisecond", time_consumed);
 	// 释放内存并关闭文件
+	FILE *output = fopen("data.out", "w");
+	if (output == NULL)
+	{
+		printf("Filed to create data.out\n");
+		return 1;
+	}
+	fprintf(output,"%d\n",num);
+	for(int i = 0; i < num; i++)
+	{
+		for (int j = 0; j < num; ++j)
+		{
+			fprintf(output, "%d ", ans[i][j]);
+		}
+		fprintf(output, "\n");
+	}
+	fclose(output);
 	for (int i = 0; i < num; i++) 
 	{
         	free(arr[i]);

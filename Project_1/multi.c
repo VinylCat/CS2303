@@ -268,6 +268,7 @@ int main(int argc, char *argv[])
     		}
     	}
     	//print
+    	/*
     	double end = clock();
     	for (int k = 0; k < Numofthread; k++)
     	{
@@ -280,6 +281,7 @@ int main(int argc, char *argv[])
 			printf("\n");
 		}	
 	}
+	*/
 	double time_consumed = (end - start)/CLOCKS_PER_SEC * 1000;
 	printf("Time consumed: %f millisecond\n", time_consumed);
 	//输出random
