@@ -1,3 +1,6 @@
+//利用管道实现了copy的功能
+//你可以使用./Copy <src.txt> <dest.txt> <buffersize> 执行
+//文件夹中已经提供了src.txt文件，每次复制会重新更新dest.txt内容
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>

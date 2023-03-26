@@ -1,3 +1,7 @@
+//通过./shell <Port>运行
+//支持pwd，cd，ls，wc等指令
+//支持管道，数量上限为5
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

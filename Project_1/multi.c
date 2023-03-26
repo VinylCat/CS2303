@@ -1,3 +1,8 @@
+//实现了多线程计算矩阵的功能
+//可以通过更改Numofthread来设置线程数量，MAX来设置随机生成的矩阵的最大值
+//可以通过./multi 运行，此时程序会默认对data.in文件中的矩阵进行自乘，结果输出到data.out中。
+//！！！注意，data.out第一行代表矩阵的size，从1开始计数，若为3x3矩阵，则第一行输出是3
+//可以通过。/multi <size>运行，此时程序会自动生成两个相应大小的矩阵进行乘法运算，结果会写入random.out中。第一行是size，计数方法同样是1based
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

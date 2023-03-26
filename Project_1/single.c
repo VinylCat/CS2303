@@ -1,3 +1,5 @@
+//可以通过./single运行程序，读入data.in的文件，将结果写入data.out中
+//！！！输出的结果第一行是1based，即3x3会输出3
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
