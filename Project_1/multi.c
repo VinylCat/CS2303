@@ -269,7 +269,7 @@ int main(int argc, char *argv[])
     	}
     	//print
     	/*
-    	double end = clock();
+    	
     	for (int k = 0; k < Numofthread; k++)
     	{
 		for (int i =0; i< myarguments[k].row; ++i)
@@ -282,8 +282,9 @@ int main(int argc, char *argv[])
 		}	
 	}
 	*/
+	double end = clock();
 	double time_consumed = (end - start)/CLOCKS_PER_SEC * 1000;
-	printf("Time consumed: %f millisecond\n", time_consumed);
+	printf("Time consumed: %f milliseconds.\n", time_consumed);
 	//输出random
 	if (argc == 2)
 	{

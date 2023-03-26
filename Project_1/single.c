@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
 	}
 	*/
 	double time_consumed = (end - start)/CLOCKS_PER_SEC *1000;
-	printf("Time consumed: %f\n millisecond", time_consumed);
+	printf("Time consumed: %f milliseconds.\n", time_consumed);
 	// 释放内存并关闭文件
 	FILE *output = fopen("data.out", "w");
 	if (output == NULL)

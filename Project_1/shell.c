@@ -183,7 +183,7 @@ int main(int argc, char  **argv)
 								}
 								else
 								{
-									send(client_sockfd, "Your path now:.\n", strlen("Your path now:.\n"), 0);
+									send(client_sockfd, "Your path now:\n", strlen("Your path now:\n"), 0);
 									send(client_sockfd, ret, strlen(ret), 0);
 									send(client_sockfd, "\n", strlen("\n"), 0);
 								}
