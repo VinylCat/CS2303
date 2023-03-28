@@ -355,7 +355,7 @@ int main(int argc, char  **argv)
 						int status;
 						for (int i =1; i< *pipe_count +2; ++i)
 						{
-							waitpid(pid_pipe[1], &status, 0);
+							waitpid(pid_pipe[i], &status, 0);
 							int ret = WEXITSTATUS(status);
 							if (ret != 0)
 							{
