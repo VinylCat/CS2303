@@ -1,3 +1,6 @@
+//use multithread to show the work among Larry, Moe and Curly
+//the state of their work will be printed out
+//when the work is finished, "off duty" will be printed out
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,18 +20,18 @@ sem_t unfilled_with_seed;//0
 void *func_Larry(void *args)
 {
 	int Holes_dug = 0;
-	while (Holes_dug < Maxnum)
+	while (Holes_dug < Maxnum)//whether Larry dig enough holes
 	{
-		sem_wait(&filled);
-		sem_wait(&Shovel);
+		sem_wait(&filled);//to check whether there are holes unfilled
+		sem_wait(&Shovel);// is Shovel available
 		
 		printf("Larry is digging now!\n");
 		sleep(rand()%NUM);
 		Holes_dug++;
 		printf("Larry has dug %d holes.\n", Holes_dug);
 
-		sem_post(&Shovel);
-		sem_post(&unfilled);
+		sem_post(&Shovel);// Shovel is available now
+		sem_post(&unfilled);// a hole unfilled
 	}
 	printf("Larry: OFF DUTY!\n");		
 	pthread_exit(NULL);	
@@ -37,16 +40,16 @@ void *func_Larry(void *args)
 void *func_Moe(void *args)
 {
 	int Holes_seeded = 0;
-	while (Holes_seeded < Maxnum)
+	while (Holes_seeded < Maxnum)//whether Moe seed enough holes
 	{
-		sem_wait(&unfilled);
+		sem_wait(&unfilled);//to check whether there are holes unseeded
 		
 		printf("Moe is seeding now");
 		sleep(rand()%NUM);
 		Holes_seeded++;
 		printf("Moe has seeded %d holes.\n", Holes_seeded);
 		
-		sem_post(&unfilled_with_seed);
+		sem_post(&unfilled_with_seed);//an unfilled hole but with seed
 	}
 	printf("Moe: OFF DUTY!\n");		
 	pthread_exit(NULL);	
@@ -55,18 +58,18 @@ void *func_Moe(void *args)
 void *func_Curly(void *args)
 {
 	int Holes_filled = 0;
-	while (Holes_filled < Maxnum)
+	while (Holes_filled < Maxnum)//whether Curly fill enough holes
 	{
-		sem_wait(&unfilled_with_seed);
-		sem_wait(&Shovel);
+		sem_wait(&unfilled_with_seed);// whether there is an unfilled hole with seeds
+		sem_wait(&Shovel);//is Shovel availbale
 		
 		printf("Curly is filling now!\n");
 		sleep(rand()%NUM);
 		Holes_filled ++;
 		printf ("Curly has filled %d holes.\n", Holes_filled);
 		
-		sem_post(&Shovel);
-		sem_post(&filled);
+		sem_post(&Shovel);// Shovel is available now
+		sem_post(&filled);//In fact, this is not necessory
 	}
 	printf("Curly: OFF DUTY!\n");
 	pthread_exit(NULL);
