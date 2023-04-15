@@ -6,9 +6,11 @@
 
 ```
 Prj2+521021911051
+	Prj2README.md
 	report.pdf
 	report.md
 	Typescript.pdf
+	Typescript.md
 	faneuil.c
 	LarryCurlyMoe.c
 	makefile
