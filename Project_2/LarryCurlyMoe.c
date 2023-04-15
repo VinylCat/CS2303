@@ -44,7 +44,7 @@ void *func_Moe(void *args)
 	{
 		sem_wait(&unfilled);//to check whether there are holes unseeded
 		
-		printf("Moe is seeding now");
+		printf("Moe is seeding now!\n");
 		sleep(rand()%NUM);
 		Holes_seeded++;
 		printf("Moe has seeded %d holes.\n", Holes_seeded);
@@ -78,6 +78,11 @@ void *func_Curly(void *args)
 
 int main (int argc, char **argv)
 {
+	if (argc != 2)
+	{
+		printf("Invalid input!\n");
+		return 1;
+	}
 	
 	Maxnum = atoi(argv[1]);
 
