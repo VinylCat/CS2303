@@ -51,6 +51,8 @@ int main(int argc, char  **argv)
             herror("Error: fail to read from the socket\n");
         if (strcmp(buffer, "E\n") == 0)
         {
+            printf("Goodbye!\n");
+            close(sockfd);
             return 0;
         }
         printf("%s", buffer);
