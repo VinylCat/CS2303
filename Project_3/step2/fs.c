@@ -140,6 +140,9 @@ void init_SINGLEINDIRECT(int blockPos)//for the available, 0 for not exist, 1 fo
 #define BITS_PER_WORD 32
 #define MASK 0x1f
 #define SHIFT 5
+
+int searchFile(char* name);
+int searchInDir(char* name);
 //type0 used for inode, type1 used for block
 void setBitMap(int type, int N)
 {
@@ -378,7 +381,12 @@ void init_FS(char* diskfile)
 
 int createFile(char* fileName) //-1 for error
 {
-    
+    int res = searchFile(fileName);
+    if (res != -1)
+    {
+        printf("Error: Already exists a file with the same name\n");
+        return 1;
+    }
     //search bitmap
 
     int inodePos, blockPos;//o based
@@ -408,7 +416,7 @@ int createFile(char* fileName) //-1 for error
     char *buf = (char*) &newfile;
     memcpy(&diskfile[(INODEBASE * BLOCKSIZE + inodePos * INODESIZE)], buf, INODESIZE);
 
-    int res = addFiletoDirectory(inodePos, fileName);
+    res = addFiletoDirectory(inodePos, fileName);
     if (res != 0)
         return -1;
     else 
@@ -474,6 +482,13 @@ int fatherLink (int sonInode)// 1 for error
 
 int createDirectory(char* directoryName) //1 for error
 {
+    int res = searchInDir(directoryName);
+    if (res != -1)
+    {
+        printf("Error: Already exists a subdirectory with the same name\n");
+        return 1;
+    }
+
     int inodePos, blockPos;
     inodePos = searchBitMap(0);
     blockPos = searchBitMap(1);
@@ -512,7 +527,6 @@ int createDirectory(char* directoryName) //1 for error
     //memcpy(&diskfile[INODEBASE * BLOCKSIZE + inodePos * INODESIZE], buf, INODESIZE);
     //in father directory we should do
     
-    int res;
     res = fatherLink(inodePos);
 
 
@@ -1414,6 +1428,55 @@ int writeIn(char* name, int len, char* data)
     return  res;
 }
 
+char* getContent(INODE *tar)
+{
+    char* content = NULL;
+    size_t size = 0;
+    size_t tmpSize = 0;
+    _u32 restSize =  tar->i_size;
+    int i = 0;
+    SINGLEINDIRECT sid;
+
+    while(restSize > 0)
+    {
+        if (i < 4)
+        {
+            if (i == 0)
+            {
+                tmpSize = min(BLOCKSIZE, restSize);
+                content = (char*)malloc(tmpSize + 1);
+                char dataBuf[256] = {0};
+                memcpy(&dataBuf, &diskfile[(BLOCKBASE + tar->i_direct[i]) * BLOCKSIZE], tmpSize);
+                strcpy(content, dataBuf);
+                size += tmpSize;
+                restSize -= tmpSize;
+            }
+            else
+            {
+                tmpSize = min(BLOCKSIZE, restSize);
+                content = (char*)realloc(content, size + tmpSize + 1);
+                char dataBuf[256] = {0};
+                memcpy(&dataBuf, &diskfile[(BLOCKBASE + tar->i_direct[i]) * BLOCKSIZE], tmpSize);
+                strcpy(content, dataBuf);
+                size += tmpSize;
+                restSize -= tmpSize;
+            }
+        }
+        else
+        {
+            memcpy(&sid, &diskfile[(BLOCKBASE + tar->i_sindirect) * BLOCKSIZE], sizeof(sid));
+            tmpSize = min(BLOCKSIZE, restSize);
+            content = (char*)realloc(content, size + tmpSize + 1);
+            char dataBuf[256] = {0};
+            memcpy(&dataBuf, &diskfile[(BLOCKBASE + sid.s_blocknum[i-4]) * BLOCKSIZE], tmpSize);
+            strcpy(content, dataBuf);
+            size += tmpSize;
+            restSize -= tmpSize;
+        }
+    }
+    return content;
+}
+
 int insertIn(char* name, int pos, int len, char* data)
 {
     int result = searchFile(name);
@@ -1429,10 +1492,21 @@ int insertIn(char* name, int pos, int len, char* data)
     memcpy(&tar, &diskfile[INODEBASE * BLOCKSIZE + result * INODESIZE], INODESIZE);
     
     if (tar.i_size < pos)
+    {    
         pos = tar.i_size;
-    
-    int res = writeFile(result, len, data, pos);
-    return res;
+        int res = writeFile(result, len, data, pos);
+        return res;
+    }
+    else 
+    {
+
+        int oriSize = tar.i_size - pos;
+        char* content =  getContent(&tar);
+        int res = writeFile(result, len, data, pos);
+        res = writeFile(result, oriSize, content + pos, pos + len);
+        return res;
+    }
+
 }
 
 int deleteIn(char* name, int pos, int len)
@@ -1740,7 +1814,7 @@ int main(int argc, char** argv)
             sscanf(line, "mk %[^\n]", fileName);
             //printf("FILENAME: %s\n", fileName);
             int res = createFile(fileName);
-            if (res == -1)
+            if (res != 0)
             {
                 printf("Failed to create the file %s.\n", fileName);
                 fprintf(fp,"No\n");
@@ -1767,6 +1841,12 @@ int main(int argc, char** argv)
             sscanf(line, "mkdir %[^\n]", directoryName);
             
             int res = createDirectory(directoryName);
+            if (res != 0)
+            {
+                printf("Failed to create the file %s.\n", directoryName);
+                fprintf(fp,"No\n");
+                continue;
+            }
             printf ("currentDirectory ID in main: %u.\n", currentDirectory.i_id);
             fprintf(fp,"Yes\n");
         }

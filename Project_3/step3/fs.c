@@ -1938,6 +1938,55 @@ int writeIn(char* name, int len, char* data)
     return  res;
 }
 
+char* getContent(INODE *tar)
+{
+    char* content = NULL;
+    size_t size = 0;
+    size_t tmpSize = 0;
+    _u32 restSize =  tar->i_size;
+    int i = 0;
+    SINGLEINDIRECT sid;
+
+    while(restSize > 0)
+    {
+        if (i < 4)
+        {
+            if (i == 0)
+            {
+                tmpSize = min(BLOCKSIZE, restSize);
+                content = (char*)malloc(tmpSize + 1);
+                char dataBuf[256] = {0};
+                readDisk((char*)&dataBuf, (BLOCKBASE + tar->i_direct[i]) * BLOCKSIZE, tmpSize);
+                strcpy(content, dataBuf);
+                size += tmpSize;
+                restSize -= tmpSize;
+            }
+            else
+            {
+                tmpSize = min(BLOCKSIZE, restSize);
+                content = (char*)realloc(content, size + tmpSize + 1);
+                char dataBuf[256] = {0};
+                readDisk((char*)&dataBuf, (BLOCKBASE + tar->i_direct[i]) * BLOCKSIZE, tmpSize);
+                strcpy(content, dataBuf);
+                size += tmpSize;
+                restSize -= tmpSize;
+            }
+        }
+        else
+        {
+            readDisk((char*)&sid, (BLOCKBASE + tar->i_sindirect) * BLOCKSIZE, sizeof(sid));
+            tmpSize = min(BLOCKSIZE, restSize);
+            content = (char*)realloc(content, size + tmpSize + 1);
+            char dataBuf[256] = {0};
+            readDisk((char*)&dataBuf, (BLOCKBASE + sid.s_blocknum[i-4]) * BLOCKSIZE, tmpSize);
+            strcpy(content, dataBuf);
+            size += tmpSize;
+            restSize -= tmpSize;
+        }
+    }
+    return content;
+}
+
 int insertIn(char* name, int pos, int len, char* data)
 {
     int result = searchFile(name);
@@ -1953,10 +2002,20 @@ int insertIn(char* name, int pos, int len, char* data)
     readDisk((char*)&tar, INODEBASE * BLOCKSIZE + result * INODESIZE, INODESIZE);
     
     if (tar.i_size < pos)
+    {    
         pos = tar.i_size;
-    
-    int res = writeFile(result, len, data, pos);
-    return res;
+        int res = writeFile(result, len, data, pos);
+        return res;
+    }
+    else 
+    {
+
+        int oriSize = tar.i_size - pos;
+        char* content =  getContent(&tar);
+        int res = writeFile(result, len, data, pos);
+        res = writeFile(result, oriSize, content + pos, pos + len);
+        return res;
+    }
 }
 
 int deleteIn(char* name, int pos, int len)
@@ -2311,16 +2370,7 @@ int main(int argc, char** argv)
         if (strcmp(line,"f\n") == 0)//f
         {
             init_FS(diskfile);
-            /*FILEDIRECTORY cd,ad;
-            cd.f_inodeNum = 3;
-            cd.a = 123123;
-            char* test = "hello 123";
-            strcpy(cd.f_fileName, test);
-            char* buf = (char*)&cd;
-            writeDisk(1, buf, sizeof(cd));
-            bzero(buf, sizeof(cd));
-            readDisk((char*)&ad, 1, sizeof(cd));
-            printf("ans is %u, %s, %d\n",ad.f_inodeNum,ad.f_fileName,ad.a);*/
+
             
             printf("Format the file system successfully.\n");
             //printf("uid: %u.\n",currentDirectory.i_uid);
