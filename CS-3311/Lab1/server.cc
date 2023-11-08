@@ -19,11 +19,29 @@ pthread_mutex_t pool_mutex;
 struct thread_data
 {
     int sockfd;
-}
+    char IPaddr[INET_ADDRSTRLEN];
+    int IPport;
+};
 
 void *client_handler(void *thread_arg)
 {
     //handle the transition
+    char data_sending[1025];
+    memset(data_sending, '0', sizeof(data_sending));
+
+    struct thread_data *local_data;
+    local_data = (struct thread_data *) thread_arg;
+
+    std::cout<<"Successfully coonnect to client: "<<local_data->IPaddr<<" Port: "<<local_data->IPport<<std::endl; 
+    
+
+    time_t current_time = time(NULL);
+    snprintf(data_sending, sizeof(data_sending), "%.24s\r\n", ctime(&current_time));
+
+    write(local_data->sockfd, data_sending, strlen(data_sending));
+    sleep(5);
+    write(local_data->sockfd, "Goodbye!\n", strlen("Goodbye!\n"));
+    close(local_data->sockfd);
 
     pthread_mutex_lock(&pool_mutex);
     pthread_t cur_pid = pthread_self();
@@ -31,8 +49,8 @@ void *client_handler(void *thread_arg)
     {
         if(thread_pool[i] == cur_pid)
         {
-            printf("Erase the thread[%d]: %d.\n", i, cur_pid);
-            thread_pool[i] == -1;
+            printf("Erase the thread[%d]: %ld.\n", i, cur_pid);
+            thread_pool[i] = -1;
             break;
         }
     }
@@ -45,6 +63,7 @@ int main()
     for (int i = 0; i < MAX_CLIENTS; i++)
         thread_pool[i] = -1;
     pthread_mutex_init(&pool_mutex, NULL);
+    struct thread_data td[MAX_CLIENTS];
 
     time_t clock;
 
@@ -76,7 +95,7 @@ int main()
     while(1)
     {
         //accept a client
-        printf("\n\nHi, I am running a server.\n");
+        printf("\n\nRunning...\n");
         client_connect = accept(client_listen, (struct sockaddr*)&new_addr, &addr_size);
         if (client_connect < 0)
         {
@@ -101,26 +120,30 @@ int main()
         if (available_thread_index > -1)
         {
             //exist an idle thread
+            char IPaddr[INET_ADDRSTRLEN];
+            if (inet_ntop(AF_INET, &(new_addr.sin_addr), IPaddr, INET_ADDRSTRLEN) == NULL)
+            {
+                perror("IP conversion error.\n");
+                return 1;
+            }
+            int client_port = ntohs(new_addr.sin_port);
+            td[available_thread_index].sockfd = client_connect;
+            td[available_thread_index].IPport = client_port;
+            memcpy(td[available_thread_index].IPaddr, IPaddr, INET_ADDRSTRLEN * sizeof(char));
+
+
+            pthread_create(&thread_pool[available_thread_index], NULL, client_handler, (void *)&td[available_thread_index]);
         }
         else
         {
             //server is busy, turn down the request
+            write(client_connect, "Fail to connect: Busy server.\n", 
+                  strlen("Fail to connect: Busy server.\n"));
+            close(client_connect);
         }
 
-        char IPaddr[INET_ADDRSTRLEN];
-        if (inet_ntop(AF_INET, &(new_addr.sin_addr), IPaddr, INET_ADDRSTRLEN) == NULL)
-        {
-            perror("IP conversion error.\n");
-            return 1;
-        }
-        int clientPort = ntohs(new_addr.sin_port);
-        printf("client connected: ip:<%s>, port:%d", IPaddr, clientPort);
     
-        clock = time(NULL);
-        snprintf(data_sending, sizeof(data_sending), "%.24s\r\n", ctime(&clock));
-        write(client_connect, data_sending, strlen(data_sending));
-
-        close(client_connect);
+        
         sleep(1);
     }
 
