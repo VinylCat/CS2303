@@ -16,6 +16,7 @@
 pthread_t thread_pool[MAX_CLIENTS];
 pthread_mutex_t pool_mutex;
 
+
 struct thread_data
 {
     int sockfd;
@@ -23,10 +24,16 @@ struct thread_data
     int IPport;
 };
 
+struct file_trans
+{
+    char filename[50];
+    long len;
+};
+
 void *client_handler(void *thread_arg)
 {
     //handle the transition
-    char data_sending[1025];
+    char data_sending[1024];
     memset(data_sending, '0', sizeof(data_sending));
 
     struct thread_data *local_data;
@@ -34,15 +41,70 @@ void *client_handler(void *thread_arg)
 
     std::cout<<"Successfully coonnect to client: "<<local_data->IPaddr<<" Port: "<<local_data->IPport<<std::endl; 
     
-
+    
     time_t current_time = time(NULL);
     snprintf(data_sending, sizeof(data_sending), "%.24s\r\n", ctime(&current_time));
+    
+    send(local_data->sockfd, data_sending, strlen(data_sending), 0);
+    std::cout<<"time len: "<< strlen(data_sending) << std::endl;
+    //file transporting
 
-    write(local_data->sockfd, data_sending, strlen(data_sending));
-    sleep(5);
-    write(local_data->sockfd, "Goodbye!\n", strlen("Goodbye!\n"));
+    FILE *file;
+    char *filename = "file.txt"; 
+
+    file = fopen(filename, "rb"); 
+    if (file == NULL) {
+        perror("Fail to open the file\n");
+    }
+    fseek(file, 0, SEEK_END); 
+    long file_length = ftell(file); 
+    if (file_length == -1) {
+        perror("fail to get the length of the file.\n");
+    }
+    fseek(file, 0, SEEK_SET); 
+    
+    char buffer[1024];
+    struct file_trans ft;
+    ft.len = file_length;
+    memcpy(ft.filename, filename, strlen(filename)*sizeof(char));
+    std::cout<<ft.filename<<std::endl;
+    //send the head
+    bzero(buffer, 1024);
+    memcpy(buffer, &ft, sizeof(ft));
+
+    send(local_data->sockfd, buffer, sizeof(ft), 0);
+    std::cout<<"ft len: "<<sizeof(ft)<<std::endl;
+
+    //send the file
+    long bytes_read;
+    bzero(buffer,1024);
+    while (!feof(file))
+    {
+        bytes_read = fread(buffer, 1, sizeof(buffer), file);
+        int send_bytes;
+        //printf("bytes_read is : %ld\n", bytes_read);
+        
+        if((send_bytes = send(local_data->sockfd, buffer, bytes_read, 0)) < 0)
+        {
+            perror("Fail to write in socket.\n");
+            break;
+        }
+        //printf("Send %d bytes in hex:\n", send_bytes);
+        
+        /*
+        for (int i = 0; i < send_bytes; i++)
+        {
+            printf("%02x ", buffer[i]);
+        }
+        printf("\n");
+        */
+    }
+    fclose(file);
+
+    //send goodbye
+    send(local_data->sockfd, "Goodbye!\n", strlen("Goodbye!\n"), 0);
+    
     close(local_data->sockfd);
-
     pthread_mutex_lock(&pool_mutex);
     pthread_t cur_pid = pthread_self();
     for (int i = 0; i < MAX_CLIENTS; i++)
@@ -54,6 +116,7 @@ void *client_handler(void *thread_arg)
             break;
         }
     }
+    
     pthread_mutex_unlock(&pool_mutex);
     pthread_exit(NULL);
 }
@@ -76,9 +139,12 @@ int main()
     memset(&ip_of_server, '0', sizeof(ip_of_server));
     memset(data_sending, '0', sizeof(data_sending));
 
+    std::cout<<"Please type in the port number: \n";
+    int port_number;
+    std::cin>>port_number;
     ip_of_server.sin_family = AF_INET;
     ip_of_server.sin_addr.s_addr = htonl(INADDR_ANY);
-    ip_of_server.sin_port = htons(8888);
+    ip_of_server.sin_port = htons(port_number);
 
     if (bind(client_listen, (struct sockaddr*)&ip_of_server, sizeof(ip_of_server)) < 0)
     {
@@ -137,8 +203,8 @@ int main()
         else
         {
             //server is busy, turn down the request
-            write(client_connect, "Fail to connect: Busy server.\n", 
-                  strlen("Fail to connect: Busy server.\n"));
+            send(client_connect, "Busy", 
+                  strlen("Busy"), 0);
             close(client_connect);
         }
 
